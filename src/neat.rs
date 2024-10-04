@@ -1,6 +1,6 @@
 use crate::gene::Genome;
 
-const GENERATIONS: u32 = 10;
+const GENERATIONS: u32 = 100000;
 pub fn run(population_size: u32, input_size: u32, output_size: u32) {
     let mut population = Vec::new();
     for _ in 0..population_size {
@@ -21,7 +21,7 @@ fn generation(population_size: u32, population: &[Genome]) -> Vec<Genome> {
             best_genome = Some(genome);
         }
     }
-    // print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
+    print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
     println!("Best fitness: {}", best_fitness);
     // println!("Best genome: {:?}", best_genome);
     println!("Node count: {}", best_genome.unwrap().node_count());

@@ -79,13 +79,14 @@ impl Genome {
     fn calculate_node(&self, node_id: NodeId, calculated_nodes: &mut HashMap<NodeId, f64>) -> f64 {
         calculated_nodes.get(&node_id).map(|v| *v).unwrap_or_else(|| {
             let connections = self.connections.iter().filter(|c| c.out_node == node_id && c.enabled);
-            calculated_nodes.insert(node_id, 0.0);
+            calculated_nodes.insert(node_id, 0.5);
             let sum = connections.fold(0.0, |acc, c| {
                 let in_value = self.calculate_node(c.in_node, calculated_nodes);
                 acc + in_value * c.weight
             });
-            calculated_nodes.insert(node_id, sum);
-            sigmoid(sum)
+            let result = sigmoid(sum);
+            calculated_nodes.insert(node_id, result);
+            result
         })
     }
 
@@ -122,13 +123,15 @@ impl Genome {
         let mut rng = rand::thread_rng();
         let in_node = *new_genome.nodes.choose(&mut rng).unwrap();
         let out_node = *new_genome.nodes.choose(&mut rng).unwrap();
-        let new_connection = ConnectionGene {
-            in_node: in_node.id,
-            out_node: out_node.id,
-            weight: random::<f64>() * 2.0 - 1.0,
-            enabled: true,
-        };
-        new_genome.connections.push(new_connection);
+        if self.connections.iter().find(|c| c.in_node == in_node.id && c.out_node == out_node.id).is_none() {
+            let new_connection = ConnectionGene {
+                in_node: in_node.id,
+                out_node: out_node.id,
+                weight: random::<f64>() * 2.0 - 1.0,
+                enabled: true,
+            };
+            new_genome.connections.push(new_connection);
+        }
         new_genome
     }
 
