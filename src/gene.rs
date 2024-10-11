@@ -2,17 +2,23 @@ use crate::sigmoid::sigmoid;
 use rand::random;
 use rand::seq::SliceRandom;
 use std::collections::HashMap;
+use std::fmt::Display;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-struct NodeId(u32);
+pub struct NodeId(u32);
+impl Display for NodeId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "N{}", self.0)
+    }
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum NodeType {
+pub enum NodeType {
     Input,
     Output,
     Hidden,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum ActivationFunction {
+pub enum ActivationFunction {
     Sigmoid,
     Gaussian,
     Square,
@@ -42,33 +48,33 @@ impl ActivationFunction {
     }
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-struct NodeGene {
-    id: NodeId,
-    node_type: NodeType,
-    activation_function: ActivationFunction,
+pub struct NodeGene {
+    pub id: NodeId,
+    pub node_type: NodeType,
+    pub activation_function: ActivationFunction,
 }
 
 #[derive(Clone, Copy, Debug)]
-struct ConnectionGene {
-    in_node: NodeId,
-    out_node: NodeId,
-    weight: f64,
-    enabled: bool,
+pub struct ConnectionGene {
+    pub in_node: NodeId,
+    pub out_node: NodeId,
+    pub weight: f64,
+    pub enabled: bool,
 }
 #[derive(Clone, Debug)]
 pub struct Genome {
-    nodes: Vec<NodeGene>,
-    connections: Vec<ConnectionGene>,
+    pub nodes: Vec<NodeGene>,
+    pub connections: Vec<ConnectionGene>,
 }
 
 impl Genome {
     pub(crate) fn new(input_size: u32, output_size: u32) -> Genome {
         let mut nodes = Vec::new();
         for i in 0..input_size {
-            nodes.push(NodeGene { id: NodeId(i), node_type: NodeType::Input, activation_function: ActivationFunction::choose_random() });
+            nodes.push(NodeGene { id: NodeId(i), node_type: NodeType::Input, activation_function: ActivationFunction::Identity });
         }
         for i in 0..output_size {
-            nodes.push(NodeGene { id: NodeId(input_size + i), node_type: NodeType::Output, activation_function: ActivationFunction::choose_random() });
+            nodes.push(NodeGene { id: NodeId(input_size + i), node_type: NodeType::Output, activation_function: ActivationFunction::Identity });
         }
         let mut connections = Vec::new();
         for i in 0..input_size {
@@ -167,7 +173,7 @@ impl Genome {
     }
 
     fn mutate_add_node(&self) -> Genome {
-        if self.node_count() > 4 {
+        if self.node_count() > 3 {
             return self.clone();
         }
         let mut new_genome = self.clone();
