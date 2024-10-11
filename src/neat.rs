@@ -3,7 +3,7 @@ use std::io;
 use crate::gene::Genome;
 use std::io::Write;
 
-const GENERATIONS: u32 = 1000;
+const GENERATIONS: u32 = 10000;
 pub fn run(population_size: u32, input_size: u32, output_size: u32) {
     let mut population = Vec::new();
     for _ in 0..population_size {

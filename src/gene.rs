@@ -107,7 +107,7 @@ impl Genome {
         ];
         let total_error = inputs.iter().fold(0.0, |acc, elem| {
             let output = self.calculate_output(elem.input.0, elem.input.1);
-            let error = (elem.expected_output - output).abs();
+            let error = (elem.expected_output - output).powi(2);
             acc + error
         });
         1.0 / (total_error + 1e-18)
@@ -116,7 +116,7 @@ impl Genome {
     fn calculate_node(&self, node_id: NodeId, calculated_nodes: &mut HashMap<NodeId, f64>) -> f64 {
         calculated_nodes.get(&node_id).map(|v| *v).unwrap_or_else(|| {
             let connections = self.connections.iter().filter(|c| c.out_node == node_id && c.enabled);
-            calculated_nodes.insert(node_id, 0.5);
+            calculated_nodes.insert(node_id, 0.0);
             let sum = connections.fold(0.0, |acc, c| {
                 let in_value = self.calculate_node(c.in_node, calculated_nodes);
                 acc + in_value * c.weight
@@ -173,7 +173,7 @@ impl Genome {
     }
 
     fn mutate_add_node(&self) -> Genome {
-        if self.node_count() > 3 {
+        if self.node_count() > 4 {
             return self.clone();
         }
         let mut new_genome = self.clone();
