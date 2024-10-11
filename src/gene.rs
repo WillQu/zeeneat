@@ -1,20 +1,51 @@
 use crate::sigmoid::sigmoid;
-use rand::seq::SliceRandom;
 use rand::random;
+use rand::seq::SliceRandom;
 use std::collections::HashMap;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 struct NodeId(u32);
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum NodeType {
     Input,
     Output,
     Hidden,
 }
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum ActivationFunction {
+    Sigmoid,
+    Gaussian,
+    Square,
+    Absolute,
+    Identity,
+}
+impl ActivationFunction {
+    fn calculate(&self, x: f64) -> f64 {
+        match self {
+            ActivationFunction::Sigmoid => sigmoid(x),
+            ActivationFunction::Gaussian => (-x.powi(2)).exp(),
+            ActivationFunction::Square => x * x,
+            ActivationFunction::Absolute => x.abs(),
+            ActivationFunction::Identity => x,
+        }
+    }
+
+    fn choose_random() -> ActivationFunction {
+        match random::<u32>() % 5 {
+            0 => ActivationFunction::Sigmoid,
+            1 => ActivationFunction::Gaussian,
+            2 => ActivationFunction::Square,
+            3 => ActivationFunction::Absolute,
+            4 => ActivationFunction::Identity,
+            _ => unreachable!(),
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct NodeGene {
     id: NodeId,
     node_type: NodeType,
+    activation_function: ActivationFunction,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -34,10 +65,10 @@ impl Genome {
     pub(crate) fn new(input_size: u32, output_size: u32) -> Genome {
         let mut nodes = Vec::new();
         for i in 0..input_size {
-            nodes.push(NodeGene { id: NodeId(i), node_type: NodeType::Input });
+            nodes.push(NodeGene { id: NodeId(i), node_type: NodeType::Input, activation_function: ActivationFunction::choose_random() });
         }
         for i in 0..output_size {
-            nodes.push(NodeGene { id: NodeId(input_size + i), node_type: NodeType::Output });
+            nodes.push(NodeGene { id: NodeId(input_size + i), node_type: NodeType::Output, activation_function: ActivationFunction::choose_random() });
         }
         let mut connections = Vec::new();
         for i in 0..input_size {
@@ -50,7 +81,7 @@ impl Genome {
                 });
             }
         }
-        println!("Initial conections: {:?}", connections);
+        println!("Initial connections: {:?}", connections);
         Genome {
             nodes,
             connections,
@@ -123,7 +154,7 @@ impl Genome {
         let mut rng = rand::thread_rng();
         let in_node = *new_genome.nodes.choose(&mut rng).unwrap();
         let out_node = *new_genome.nodes.choose(&mut rng).unwrap();
-        if self.connections.iter().find(|c| c.in_node == in_node.id && c.out_node == out_node.id).is_none() {
+        if in_node != out_node && out_node.node_type != NodeType::Input && self.connections.iter().find(|c| c.in_node == in_node.id && c.out_node == out_node.id).is_none() {
             let new_connection = ConnectionGene {
                 in_node: in_node.id,
                 out_node: out_node.id,
@@ -136,12 +167,16 @@ impl Genome {
     }
 
     fn mutate_add_node(&self) -> Genome {
+        if self.node_count() > 4 {
+            return self.clone();
+        }
         let mut new_genome = self.clone();
         let connection = new_genome.connections.choose_mut(&mut rand::thread_rng()).unwrap();
         connection.enabled = false;
         let new_node = NodeGene {
             id: NodeId(new_genome.nodes.len() as u32),
             node_type: NodeType::Hidden,
+            activation_function: ActivationFunction::choose_random(),
         };
         let new_connection1 = ConnectionGene {
             in_node: connection.in_node,
@@ -161,13 +196,25 @@ impl Genome {
         new_genome
     }
 
+    fn mutate_change_activation_function(&self) -> Genome {
+        let mut new_genome = self.clone();
+        let node = new_genome.nodes.choose_mut(&mut rand::thread_rng()).unwrap();
+        node.activation_function = ActivationFunction::choose_random();
+        new_genome
+    }
+
     pub(crate) fn mutate(&self) -> Genome {
-        match random::<u32>() % 5 {
+        self.mutate_once().mutate_once()
+    }
+
+    fn mutate_once(&self) -> Genome {
+        match random::<u32>() % 6 {
             0 => self.mutate_connection_status(),
             1 => self.mutate_perturbate_connection_weight(),
             2 => self.mutate_replace_connection_weight(),
             3 => self.mutate_add_connection(),
             4 => self.mutate_add_node(),
+            5 => self.mutate_change_activation_function(),
             _ => unreachable!(),
         }
     }
